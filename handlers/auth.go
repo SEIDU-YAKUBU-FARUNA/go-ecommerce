@@ -62,7 +62,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	user.Password = hashedpassword
 
-	user.IsAdmin = false
+	user.IsAdmin = true
 
 	_, err = collection.InsertOne(ctx, user)
 	if err != nil {
@@ -115,7 +115,24 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	err = utils.Checkpassword(user.Password, loginData.Password)
 	if err != nil {
 		http.Error(w, "invalid email or password", http.StatusUnauthorized)
+		return
 	}
+
+	// Generate JWT token
+	token, err := utils.GenerateToken(user.ID.Hex(), user.IsAdmin)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		return
+	}
+
+	// ✅ Return token to client
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Login successful",
+		"token":   token,
+	})
+
+	/**
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -128,5 +145,7 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 			"is_admin": user.IsAdmin,
 		},
 	})
+
+	**/
 
 }

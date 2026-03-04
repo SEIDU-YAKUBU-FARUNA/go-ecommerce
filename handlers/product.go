@@ -12,11 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// admin access function
-func isAdmin(r *http.Request) bool {
-	return r.Header.Get("X-Admin") == "true"
-}
-
 // get all product
 func GetProducts(w http.ResponseWriter, r *http.Request) {
 
@@ -99,12 +94,6 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !isAdmin(r) {
-
-		http.Error(w, "admin access reqired", http.StatusForbidden)
-		return
-	}
-
 	var product models.Product
 
 	err := json.NewDecoder(r.Body).Decode(&product)
@@ -120,6 +109,7 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 	result, err := collection.InsertOne(ctx, product)
 	if err != nil {
 		http.Error(w, "failed to crete or add product", http.StatusInternalServerError)
+		return
 	}
 
 	insertedID := result.InsertedID.(primitive.ObjectID)
@@ -140,11 +130,6 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !isAdmin(r) {
-		http.Error(w, "admin access required", http.StatusForbidden)
-		return
-	}
-
 	id := r.URL.Query().Get("id")
 	if id == "" {
 		http.Error(w, "product id required", http.StatusBadRequest)
@@ -162,6 +147,7 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&product)
 	if err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
 	}
 
 	collection := database.DB.Collection("products")
@@ -204,10 +190,6 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !isAdmin(r) {
-		http.Error(w, " admin access required", http.StatusForbidden)
-	}
-
 	id := r.URL.Query().Get("id")
 	if id == "" {
 		http.Error(w, "product id required", http.StatusBadRequest)
@@ -217,6 +199,7 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		http.Error(w, "invalid ID", http.StatusBadRequest)
+		return
 	}
 
 	collection := database.DB.Collection("products")
