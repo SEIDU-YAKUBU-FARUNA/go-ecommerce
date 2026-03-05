@@ -37,20 +37,22 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	var existingUser models.User
+	/**
+
 	err = collection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&existingUser)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "user email already exist")
 		return
 	}
 
-	HashedPassword, err := utils.HashPassword(user.Password)
+	HashPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 
 		utils.RespondWithError(w, http.StatusInternalServerError, "password not hashed")
 		return
 	}
 
-	user.Password = HashedPassword
+	user.Password = HashPassword
 	user.IsAdmin = true
 	_, err = collection.InsertOne(ctx, user)
 	if err != nil {
@@ -61,6 +63,33 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "apllicaton/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "user successfully created"})
+
+	**/
+	// 1. Check if user exists
+	err = collection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&existingUser)
+	if err == nil { // If err is NIL, it means a user WAS found!
+		utils.RespondWithError(w, http.StatusBadRequest, "user email already exists")
+		return
+	}
+
+	// 2. Hash the password (MAKE SURE THE 'P' IS CAPITALIZED)
+	hashedpassword, err := utils.HashPassword(user.Password)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to hash password")
+		return
+	}
+
+	// 3. Assign and Save
+	user.Password = hashedpassword
+	user.IsAdmin = true
+	_, err = collection.InsertOne(ctx, user)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Could not create user")
+		return
+	}
+
+	// 4. Success
+	utils.RespondWithJSON(w, http.StatusCreated, map[string]string{"message": "user successfully created"})
 
 }
 
