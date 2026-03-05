@@ -7,7 +7,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// LoadEnv loads variables from .env into the system
+// LoadEnv loads variables from .env into the system or find the .env file
+
 func LoadEnv() {
 	err := godotenv.Load()
 	if err != nil {
@@ -15,7 +16,7 @@ func LoadEnv() {
 	}
 }
 
-// GetEnv gets a variable safely
+// Get the varible in the evn file and load it into the system
 func GetEnv(key string) string {
 	value := os.Getenv(key)
 	if value == "" {
