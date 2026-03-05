@@ -43,7 +43,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hashedpassword, err := utils.Hashpassword(user.Password)
+	hashedpassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 
 		utils.RespondWithError(w, http.StatusInternalServerError, "password not hashed")
