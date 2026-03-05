@@ -43,14 +43,14 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hashedpassword, err := utils.HashPassword(user.Password)
+	HashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 
 		utils.RespondWithError(w, http.StatusInternalServerError, "password not hashed")
 		return
 	}
 
-	user.Password = hashedpassword
+	user.Password = HashedPassword
 	user.IsAdmin = true
 	_, err = collection.InsertOne(ctx, user)
 	if err != nil {
