@@ -81,7 +81,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Assign and Save
 	user.Password = hashedpassword
-	user.IsAdmin = true
+	user.IsAdmin = false // Default to non-admin. You can change this logic as needed.
 	_, err = collection.InsertOne(ctx, user)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Could not create user")
