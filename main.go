@@ -90,7 +90,7 @@ func main() {
 	fmt.Println("Server running on port:", port)
 
 	// Apply CORS middleware
-	handler := middleware.EnableCORS(http.DefaultServeMux)
+	handler := middleware.EnableCORS(mux)
 
 	http.ListenAndServe(":"+port, handler)
 }
