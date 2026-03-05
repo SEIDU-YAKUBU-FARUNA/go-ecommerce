@@ -3,8 +3,10 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+
 	"go-ecommerce/database"
 	"go-ecommerce/models"
+	"go-ecommerce/utils"
 	"net/http"
 	"time"
 
@@ -16,7 +18,8 @@ import (
 func GetProducts(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodGet {
-		http.Error(w, " method not allowed", http.StatusMethodNotAllowed)
+		//http.Error(w, " method not allowed", http.StatusMethodNotAllowed)
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 
 	}
@@ -28,8 +31,10 @@ func GetProducts(w http.ResponseWriter, r *http.Request) {
 
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
-		http.Error(w, "failed to fetch products", http.StatusInternalServerError)
+		//http.Error(w, "failed to fetch products", http.StatusInternalServerError)
+		utils.RespondWithError(w, http.StatusInternalServerError, "failed to fetch produccts")
 		return
+
 	}
 	defer cursor.Close(ctx)
 
@@ -53,20 +58,26 @@ func GetProducts(w http.ResponseWriter, r *http.Request) {
 // get single product
 func GetProduct(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		//http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method not allowed ")
 		return
+
 	}
 
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		http.Error(w, "product ID required", http.StatusBadRequest)
+		//http.Error(w, "product ID required", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "product id required")
 		return
+
 	}
 
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		http.Error(w, "invalid product id", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid product id")
 		return
+
 	}
 
 	collection := database.DB.Collection("products")
@@ -77,7 +88,8 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 
 	err = collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&product)
 	if err != nil {
-		http.Error(w, "fialed to fetch product ", http.StatusNotFound)
+		//http.Error(w, "fialed to fetch product ", http.StatusNotFound)
+		utils.RespondWithError(w, http.StatusNotFound, "failed to fetch product")
 		return
 	}
 
@@ -90,15 +102,18 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 func AddProduct(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "invalid method", http.StatusMethodNotAllowed)
+		//http.Error(w, "invalid method", http.StatusMethodNotAllowed)
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "invalid methos")
 		return
+
 	}
 
 	var product models.Product
 
 	err := json.NewDecoder(r.Body).Decode(&product)
 	if err != nil {
-		http.Error(w, "invalid body", http.StatusBadRequest)
+		//http.Error(w, "invalid body", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid id")
 		return
 	}
 
@@ -108,7 +123,8 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 
 	result, err := collection.InsertOne(ctx, product)
 	if err != nil {
-		http.Error(w, "failed to crete or add product", http.StatusInternalServerError)
+		//http.Error(w, "failed to crete or add product", http.StatusInternalServerError)
+		utils.RespondWithError(w, http.StatusInternalServerError, "failed to createe or add product")
 		return
 	}
 
@@ -126,19 +142,22 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPut {
-		http.Error(w, "invalid method", http.StatusMethodNotAllowed)
+		//http.Error(w, "invalid method", http.StatusMethodNotAllowed)
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "invalid method")
 		return
 	}
 
 	id := r.URL.Query().Get("id")
 	if id == "" {
 		http.Error(w, "product id required", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "product id required")
 		return
 	}
 
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		http.Error(w, "invalid id ", http.StatusBadRequest)
+		//http.Error(w, "invalid id ", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid id")
 		return
 
 	}
@@ -146,7 +165,8 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
 	err = json.NewDecoder(r.Body).Decode(&product)
 	if err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		//http.Error(w, "invalid request body", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
@@ -166,13 +186,17 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	result, err := collection.UpdateOne(ctx, bson.M{"_id": objID}, update)
 
 	if err != nil {
-		http.Error(w, "failed to update", http.StatusInternalServerError)
+		//http.Error(w, "failed to update", http.StatusInternalServerError)
+		utils.RespondWithError(w, http.StatusInternalServerError, "invalid id")
 		return
 	}
 
 	if result.MatchedCount == 0 {
-		http.Error(w, "product not found", http.StatusNotFound)
+		//http.Error(w, "product not found", http.StatusNotFound)
+
+		utils.RespondWithError(w, http.StatusNotFound, "product not found")
 		return
+
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -186,20 +210,25 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodDelete {
-		http.Error(w, "method not Allowed ", http.StatusMethodNotAllowed)
+		//http.Error(w, "method not Allowed ", http.StatusMethodNotAllowed)
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		http.Error(w, "product id required", http.StatusBadRequest)
+		//http.Error(w, "product id required", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "product id required")
 		return
+
 	}
 
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		http.Error(w, "invalid ID", http.StatusBadRequest)
+		//http.Error(w, "invalid ID", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid id")
 		return
+
 	}
 
 	collection := database.DB.Collection("products")
@@ -208,7 +237,8 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 
 	_, err = collection.DeleteOne(ctx, bson.M{"_id": objID})
 	if err != nil {
-		http.Error(w, " failed to delete  ", http.StatusInternalServerError)
+		//http.Error(w, " failed to delete  ", http.StatusInternalServerError)
+		utils.RespondWithError(w, http.StatusInternalServerError, "failed to delete")
 		return
 	}
 

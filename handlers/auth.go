@@ -15,21 +15,20 @@ import (
 func RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
-
-		http.Error(w, "only post is alllowed", http.StatusMethodNotAllowed)
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "Only POST is allowed")
 		return
-
 	}
 
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		http.Error(w, "invalid body request", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid body request")
 		return
 	}
 
 	if user.Name == "" || user.Email == "" || user.Password == "" {
-		http.Error(w, "all field is required", http.StatusBadRequest)
+
+		utils.RespondWithError(w, http.StatusBadRequest, "all field is required")
 		return
 	}
 
@@ -37,36 +36,26 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	/**var existingUser models.User
-		err = collection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&existingUser)
-
-		if err == nil {
-			http.Error(w, "email already exist", http.StatusConflict)
-			return
-		}
-	**/
-
 	var existingUser models.User
 	err = collection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&existingUser)
-	if err == nil {
-
-		http.Error(w, "user email already exist", http.StatusConflict)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "user email already exist")
 		return
 	}
 
 	hashedpassword, err := utils.Hashpassword(user.Password)
 	if err != nil {
-		http.Error(w, "password not hashed ", http.StatusInternalServerError)
+
+		utils.RespondWithError(w, http.StatusInternalServerError, "password not hashed")
 		return
 	}
 
 	user.Password = hashedpassword
-
 	user.IsAdmin = true
-
 	_, err = collection.InsertOne(ctx, user)
 	if err != nil {
-		http.Error(w, "failed to create user", http.StatusInternalServerError)
+
+		utils.RespondWithError(w, http.StatusInternalServerError, "password not hashed")
 		return
 	}
 
@@ -80,7 +69,8 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 func LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		//http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "all field is required")
 		return
 	}
 
@@ -91,12 +81,14 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&loginData)
 	if err != nil {
-		http.Error(w, "invalid reques ", http.StatusBadRequest)
+		//http.Error(w, "invalid reques ", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
 	if loginData.Email == "" || loginData.Password == "" {
-		http.Error(w, "all field are required", http.StatusBadRequest)
+		//http.Error(w, "all field are required", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "all field is required")
 		return
 	}
 
@@ -108,20 +100,25 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	err = collection.FindOne(ctx, bson.M{"email": loginData.Email}).Decode(&user)
 	if err != nil {
-		http.Error(w, "inavalid email or password", http.StatusUnauthorized)
+		//http.Error(w, "inavalid email or password", http.StatusUnauthorized)
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid email or password")
 		return
+
 	}
 
 	err = utils.Checkpassword(user.Password, loginData.Password)
 	if err != nil {
-		http.Error(w, "invalid email or password", http.StatusUnauthorized)
+		//http.Error(w, "invalid email or password", http.StatusUnauthorized)
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid email or password")
+
 		return
 	}
 
 	// Generate JWT token
 	token, err := utils.GenerateToken(user.ID.Hex(), user.IsAdmin)
 	if err != nil {
-		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		//http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		utils.RespondWithError(w, http.StatusInternalServerError, "failed to generate token")
 		return
 	}
 

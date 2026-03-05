@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"go-ecommerce/database"
 	"go-ecommerce/models"
+	"go-ecommerce/utils"
 	"net/http"
 	"time"
 
@@ -15,8 +16,10 @@ import (
 func CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "invalid method", http.StatusBadRequest)
+		//http.Error(w, "invalid method", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid method")
 		return
+
 	}
 
 	var request struct {
@@ -26,18 +29,21 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		http.Error(w, "invalid request body ", http.StatusBadRequest)
+		//http.Error(w, "invalid request body ", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if request.User == "" || len(request.Products) == 0 {
-		http.Error(w, "user and products required ", http.StatusBadRequest)
+		//http.Error(w, "user and products required ", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "failed to create order")
 		return
 	}
 
 	userID, err := primitive.ObjectIDFromHex(request.User)
 	if err != nil {
-		http.Error(w, " invalid ID", http.StatusBadRequest)
+		//http.Error(w, " invalid ID", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid id")
 		return
 	}
 
@@ -55,13 +61,17 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 		//find the product id
 		objID, err := primitive.ObjectIDFromHex(pid)
 		if err != nil {
-			http.Error(w, "invalid product id ", http.StatusBadGateway)
+			//http.Error(w, "invalid product id ", http.StatusBadGateway)
+			utils.RespondWithError(w, http.StatusBadRequest, "invalid product id")
+			return
 		}
 
 		var product models.Product
 		err = productsCollection.FindOne(ctx, bson.M{"id": objID}).Decode(&product)
 		if err != nil {
-			http.Error(w, "product not found", http.StatusInternalServerError)
+			//http.Error(w, "product not found", http.StatusInternalServerError)
+			utils.RespondWithError(w, http.StatusInternalServerError, "product not found")
+			return
 		}
 
 		//add price to total
@@ -79,7 +89,9 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	_, err = oderCollection.InsertOne(ctx, order)
 	if err != nil {
-		http.Error(w, " fialed to create order", http.StatusInternalServerError)
+		//http.Error(w, " fialed to create order", http.StatusInternalServerError)
+		utils.RespondWithError(w, http.StatusInternalServerError, "failed to create order")
+		return
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -94,12 +106,14 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodGet {
 
-		http.Error(w, " method not allowed", http.StatusMethodNotAllowed)
+		//http.Error(w, " method not allowed", http.StatusMethodNotAllowed)
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	if r.Header.Get("X-Admin") == "true" {
-		http.Error(w, " admin access required", http.StatusForbidden)
+		//http.Error(w, " admin access required", http.StatusForbidden)
+		utils.RespondWithError(w, http.StatusForbidden, "admin access required")
 		return
 	}
 
@@ -109,7 +123,9 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
-		http.Error(w, "failed to fetch odrders", http.StatusInternalServerError)
+		//http.Error(w, "failed to fetch odrders", http.StatusInternalServerError)
+		utils.RespondWithError(w, http.StatusInternalServerError, "all field is required")
+
 		return
 	}
 	defer cursor.Close(ctx)
