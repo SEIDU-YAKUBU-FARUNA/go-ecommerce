@@ -9,6 +9,7 @@ import (
 	"go-ecommerce/config"
 
 
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -64,13 +65,11 @@ func AuthMiddleware(next http.HandlerFunc, requireAdmin bool) http.HandlerFunc {
 package middleware
 
 import (
+	"github.com/golang-jwt/jwt/v5"
+	"go-ecommerce/utils"
 	"net/http"
 	"os"
 	"strings"
-
-	"go-ecommerce/utils"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func AuthMiddleware(next http.HandlerFunc, adminOnly bool) http.HandlerFunc {
@@ -81,7 +80,7 @@ func AuthMiddleware(next http.HandlerFunc, adminOnly bool) http.HandlerFunc {
 			return
 		}
 
-		// 1. MUST strip the "Bearer " prefix
+		// Remove "Bearer " from the start of the token string
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -89,19 +88,17 @@ func AuthMiddleware(next http.HandlerFunc, adminOnly bool) http.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			utils.RespondWithError(w, http.StatusUnauthorized, "Invalid Token")
+			utils.RespondWithError(w, http.StatusUnauthorized, "Invalid or expired token")
 			return
 		}
 
-		// 2. Extract Claims carefully
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			utils.RespondWithError(w, http.StatusUnauthorized, "Invalid Claims")
+			utils.RespondWithError(w, http.StatusUnauthorized, "Invalid token claims")
 			return
 		}
 
-		// 3. THE FIX: The key here must match your GenerateToken key exactly
-		// If jwt.io showed "isAdmin", use "isAdmin" here.
+		// THE FIX: Use "isAdmin" (matches the JSON tag in utils/jwt.go)
 		isAdmin, ok := claims["isAdmin"].(bool)
 
 		if adminOnly && (!ok || !isAdmin) {
