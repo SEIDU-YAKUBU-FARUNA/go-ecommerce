@@ -12,7 +12,7 @@ func EnableCORS(next http.Handler) http.Handler {
 
 		// Allow requests only from your frontend domain
 		// This prevents unknown websites from calling your API
-		w.Header().Set("Access-Control-Allow-Origin", "https://mini-s.netlify.app")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		// Allow these HTTP methods when the frontend makes requests
 		// Example:
