@@ -220,7 +220,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 	// 🟢 FIX: Matching your models.Order struct field exactly
 	order := models.Order{
 		UserID:      userID,
-		product:     productIDs, // Use 'Product' to match your models.go exactly
+		Products:    productIDs, // Use 'Products' to match your models.go exactly
 		TotalAmount: total,
 	}
 
