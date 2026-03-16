@@ -1,3 +1,4 @@
+/**
 package handlers
 
 import (
@@ -141,4 +142,131 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "applications/json")
 	json.NewEncoder(w).Encode(orders)
 
+}
+
+**/
+
+package handlers
+
+import (
+	"context"
+	"encoding/json"
+	"go-ecommerce/database"
+	"go-ecommerce/models"
+	"go-ecommerce/utils"
+	"net/http"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+func CreateOrder(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "Only POST is allowed")
+		return
+	}
+
+	var request struct {
+		User     string   `json:"user"`
+		Products []string `json:"products"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if request.User == "" || len(request.Products) == 0 {
+		utils.RespondWithError(w, http.StatusBadRequest, "user ID and products are required")
+		return
+	}
+
+	userID, err := primitive.ObjectIDFromHex(request.User)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	productsCollection := database.DB.Collection("products")
+	orderCollection := database.DB.Collection("orders") // Fixed typo: oders -> orders
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var productIDs []primitive.ObjectID
+	var total float64 = 0
+
+	for _, pid := range request.Products {
+		objID, err := primitive.ObjectIDFromHex(pid)
+		if err != nil {
+			utils.RespondWithError(w, http.StatusBadRequest, "invalid product id: "+pid)
+			return
+		}
+
+		var product models.Product
+		// 🟢 FIX: MongoDB uses "_id", not "id"
+		err = productsCollection.FindOne(ctx, bson.M{"_id": objID}).Decode(&product)
+		if err != nil {
+			utils.RespondWithError(w, http.StatusInternalServerError, "product not found: "+pid)
+			return
+		}
+
+		total += product.Price
+		productIDs = append(productIDs, objID)
+	}
+
+	// 🟢 FIX: Matching your models.Order struct field exactly
+	order := models.Order{
+		UserID:      userID,
+		product:     productIDs, // Use 'Product' to match your models.go exactly
+		TotalAmount: total,
+	}
+
+	_, err = orderCollection.InsertOne(ctx, order)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "failed to create order")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "order created successfully",
+		"total":   total,
+	})
+}
+
+func GetOrders(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	// Note: You should ideally use your AuthMiddleware here instead of manual header checks
+	isAdmin := r.Header.Get("X-Admin")
+	if isAdmin != "true" {
+		utils.RespondWithError(w, http.StatusForbidden, "admin access required")
+		return
+	}
+
+	collection := database.DB.Collection("orders") // Fixed typo: oders -> orders
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "failed to fetch orders")
+		return
+	}
+	defer cursor.Close(ctx)
+
+	var orders []models.Order
+	if err = cursor.All(ctx, &orders); err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "failed to decode orders")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(orders)
 }

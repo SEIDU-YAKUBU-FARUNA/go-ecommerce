@@ -10,6 +10,8 @@ import (
 
 
 
+
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -99,7 +101,7 @@ func AuthMiddleware(next http.HandlerFunc, adminOnly bool) http.HandlerFunc {
 		}
 
 		// THE FIX: Use "isAdmin" (matches the JSON tag in utils/jwt.go)
-		isAdmin, ok := claims["isAdmin"].(bool)
+		isAdmin, ok := claims["is_admin"].(bool)
 
 		if adminOnly && (!ok || !isAdmin) {
 			utils.RespondWithError(w, http.StatusForbidden, "Admin access required")

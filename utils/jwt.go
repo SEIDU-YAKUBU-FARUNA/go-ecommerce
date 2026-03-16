@@ -9,6 +9,7 @@ import (
 
 
 
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -45,7 +46,7 @@ import (
 
 type Claims struct {
 	UserID  string `json:"user_id"`
-	IsAdmin bool   `json:"isAdmin"` // This is the key that goes into the JWT
+	IsAdmin bool   `json:"is_admin"` // This is the key that goes into the JWT
 	jwt.RegisteredClaims
 }
 
